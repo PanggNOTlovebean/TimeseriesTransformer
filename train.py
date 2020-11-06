@@ -1,10 +1,12 @@
+import os ,datetime
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 import numpy as np
 import pandas as  pd
 import tensorflow as tf
 from tensorflow.keras.models import *
 from tensorflow.keras.layers import *
-import os ,datetime
-
+import matplotlib.pyplot as plt
 
 batch_size = 32
 seq_len = 128
@@ -16,7 +18,7 @@ ff_dim = 256
 
 " data download  https://finance.yahoo.com/quote/IBM/history?period1=950400&period2=1594512000&interval=1d&filter=history&frequency=1d"
 
-df = pd.read_csv('../input/IBM.csv', delimiter=',', usecols=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+df = pd.read_csv('./input/index.csv', delimiter=',', usecols=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
 
 # Replace 0 to avoid dividing by 0 later on
 df['Volume'].replace(to_replace=0, method='ffill', inplace=True) 
@@ -62,7 +64,7 @@ df['Volume'] = (df['Volume'] - min_volume) / (max_volume - min_volume)
 
 
 '''Create training, validation and test split'''
-
+print(df)
 times = sorted(df.index.values)
 last_10pct = sorted(df.index.values)[-int(0.1*len(times))] # Last 10% of series
 last_20pct = sorted(df.index.values)[-int(0.2*len(times))] # Last 20% of series
@@ -70,6 +72,7 @@ last_20pct = sorted(df.index.values)[-int(0.2*len(times))] # Last 20% of series
 df_train = df[(df.index < last_20pct)]  # Training data are 80% of total data
 df_val = df[(df.index >= last_20pct) & (df.index < last_10pct)]
 df_test = df[(df.index >= last_10pct)]
+test_tick=df[(df.index >= last_10pct)]['Date'][128:]
 
 # Remove date column
 df_train.drop(columns=['Date'], inplace=True)
@@ -77,6 +80,7 @@ df_val.drop(columns=['Date'], inplace=True)
 df_test.drop(columns=['Date'], inplace=True)
 
 # Convert pandas columns into arrays
+
 train_data = df_train.values
 val_data = df_val.values
 test_data = df_test.values
@@ -111,14 +115,35 @@ X_test, y_test = np.array(X_test), np.array(y_test)
 
 import model
 model = model.create_model()
-
+# print(X_train)
+# print(y_train)
 callback = tf.keras.callbacks.ModelCheckpoint('Transformer+TimeEmbedding_avg.hdf5', 
                                               monitor='val_loss', 
                                               save_best_only=True, 
                                               verbose=1)
+# history = model.fit(X_train, y_train, 
+#                     batch_size=batch_size, 
+#                     epochs=10, 
+#                     callbacks=[callback],
+#                     validation_data=(X_val, y_val)) 
+model.load_weights('Transformer+TimeEmbedding_avg.hdf5')
+y=model.predict(X_test)
+fig=plt.figure()
+import datetime
+test_tick=test_tick.apply(lambda x:datetime.datetime.strptime(x,'%Y-%m-%d'))
 
-history = model.fit(X_train, y_train, 
-                    batch_size=batch_size, 
-                    epochs=35, 
-                    callbacks=[callback],
-                    validation_data=(X_val, y_val))  
+
+true_y=y*(max_return - min_return)+min_return
+true_ytest=y_test*(max_return - min_return)+min_return
+df = pd.read_csv('./input/index.csv', delimiter=',', usecols=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+
+real_close=df[(df.index >= last_10pct)]['Close'][127:-1].values
+pre_close=[]
+for i in range(len(real_close)):
+	predict_close=real_close[i]*(1+true_y[i])
+	pre_close.append(predict_close)
+plt.plot(test_tick,df[(df.index >= last_10pct)]['Close'][128:].values,label="true",linewidth=1)
+plt.plot(test_tick,pre_close,label="predict",linewidth=1)
+
+plt.legend()
+plt.show()

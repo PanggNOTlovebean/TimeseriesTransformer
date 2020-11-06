@@ -3,7 +3,7 @@
 
 import tensorflow as tf
 from tensorflow.keras.layers import *
-
+import numpy as np
 batch_size = 32
 seq_len = 128
 
