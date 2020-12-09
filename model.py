@@ -10,7 +10,7 @@ from Transformer import  TransformerEncoder
 
 
 batch_size = 32
-seq_len = 128
+seq_len = 49
 
 d_k = 256
 d_v = 256
@@ -26,7 +26,7 @@ def create_model():
   attn_layer3 = TransformerEncoder(d_k, d_v, n_heads, ff_dim)
 
   '''Construct model'''
-  in_seq = Input(shape=(seq_len, 5))
+  in_seq = Input(shape=(seq_len, 1))
   x = time_embedding(in_seq)
   x = Concatenate(axis=-1)([in_seq, x])
   x = attn_layer1((x, x, x))

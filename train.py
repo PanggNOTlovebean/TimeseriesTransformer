@@ -112,7 +112,8 @@ for i in range(seq_len, len(test_data)):
     y_test.append(test_data[:, 3][i])    
 X_test, y_test = np.array(X_test), np.array(y_test)
 
-
+print(X_train.shape,y_train.shape)
+print(y_train)
 import model
 model = model.create_model()
 # print(X_train)
@@ -121,11 +122,11 @@ callback = tf.keras.callbacks.ModelCheckpoint('Transformer+TimeEmbedding_avg.hdf
                                               monitor='val_loss', 
                                               save_best_only=True, 
                                               verbose=1)
-# history = model.fit(X_train, y_train, 
-#                     batch_size=batch_size, 
-#                     epochs=10, 
-#                     callbacks=[callback],
-#                     validation_data=(X_val, y_val)) 
+history = model.fit(X_train, y_train, 
+                    batch_size=batch_size, 
+                    epochs=10, 
+                    callbacks=[callback],
+                    validation_data=(X_val, y_val)) 
 model.load_weights('Transformer+TimeEmbedding_avg.hdf5')
 y=model.predict(X_test)
 fig=plt.figure()
@@ -137,12 +138,12 @@ true_y=y*(max_return - min_return)+min_return
 true_ytest=y_test*(max_return - min_return)+min_return
 df = pd.read_csv('./input/index.csv', delimiter=',', usecols=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
 
-real_close=df[(df.index >= last_10pct)]['Close'][127:-1].values
+real_close=df[(df.index >= last_10pct)]['Close'][49:-1].values
 pre_close=[]
 for i in range(len(real_close)):
 	predict_close=real_close[i]*(1+true_y[i])
 	pre_close.append(predict_close)
-plt.plot(test_tick,df[(df.index >= last_10pct)]['Close'][128:].values,label="true",linewidth=1)
+plt.plot(test_tick,df[(df.index >= last_10pct)]['Close'][50:].values,label="true",linewidth=1)
 plt.plot(test_tick,pre_close,label="predict",linewidth=1)
 
 plt.legend()
